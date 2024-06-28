@@ -1,59 +1,89 @@
 <template>
-  <div class="container">
-    <input v-model="text" placeholder="输入练习内容" />
-    <button @click="generatePDF">生成 PDF</button>
-  </div>
+  <view>
+    <button>生成 PDF</button>
+    <CanvasToUrl />
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { PDFDocument } from 'pdf-lib'
+import { onMounted, ref } from 'vue'
+import TianZiGe from '@/static/images/huigongge.svg'
+import { generatePdfFile } from '@/utils'
+import CanvasToUrl from '@/components/CanvasToUrl.vue'
 
-const text = ref('')
+const canvasWidth = ref(938)
+const canvasHeight = ref(1326.6)
+
+const textVal =
+  '若测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容测试打印内容'
+let ctx: UniApp.CanvasContext
+
+const charsPerLine = 12
+const gridSize = 80
+const spacing = 8 // 上下间距
+
+const fs: UniApp.FileSystemManager = uni.getFileSystemManager()
+
+onMounted(() => {
+  ctx = uni.createCanvasContext('canvasA')
+})
 
 const generatePDF = async () => {
-  // 创建 PDF 文档
-  const pdfDoc = await PDFDocument.create()
-  const page = pdfDoc.addPage([595.28, 841.89]) // A4 size
+  // 清除画布
+  ctx.clearRect(0, 0, canvasWidth.value, canvasHeight.value)
 
-  const fs = uni.getFileSystemManager()
+  const cols = charsPerLine
+  const rows = Math.floor((canvasHeight.value + spacing) / (gridSize + spacing)) // 考虑上下间距的行数
 
-  uni.chooseMedia({
-    count: 1,
-    mediaType: ['image'],
-    sourceType: ['album', 'camera'],
-    success: async (res) => {
-      const sBase64 = fs.readFileSync(res.tempFiles[0].tempFilePath, 'base64')
-      const jpgImage = await pdfDoc.embedPng(sBase64)
-      page.drawImage(jpgImage, {
-        x: 20,
-        y: 20,
-        width: page.getWidth() - 40,
-        height: page.getHeight() - 40,
-      })
+  // 绘制背景格子
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const yOffset = row * (gridSize + spacing) // 考虑上下间距
+      ctx.drawImage(TianZiGe, col * (gridSize - 2), yOffset, gridSize, gridSize)
+    }
+  }
 
-      // 保存 PDF 文档
-      const pdfBytes = await pdfDoc.saveAsBase64()
-      const filePath = uni.env.USER_DATA_PATH + '/' + 'pdf.pdf'
-      fs.writeFile({
-        data: pdfBytes,
-        filePath,
-        encoding: 'base64',
-        success: (r) => {
-          uni.openDocument({
-            filePath,
-          })
-        },
-        complete: (r) => {
-          console.log(r)
-        },
-      })
-    },
+  // 设置字体和大小
+  ctx.setFontSize(40)
+  ctx.setFillStyle('#333333')
+  ctx.setTextAlign('center')
+  ctx.setTextBaseline('middle')
+
+  // 绘制字帖内容
+  let index = 0
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (index < textVal.length) {
+        const yOffset = row * (gridSize + spacing) // 考虑上下间距
+        const x = col * (gridSize - 2) + gridSize / 2
+        const y = yOffset + gridSize / 2
+        ctx.fillText(textVal[index], x, y)
+        index++
+      }
+    }
+  }
+
+  ctx.draw(false, () => {
+    uni.canvasToTempFilePath({
+      x: 0,
+      y: 0,
+      width: canvasWidth.value,
+      height: canvasHeight.value,
+      fileType: 'png',
+      canvasId: 'canvasA',
+      success: async (res) => {
+        const filePath = await generatePdfFile([res.tempFilePath, res.tempFilePath])
+        await uni.openDocument({ filePath })
+      },
+      fail: (err) => {
+        console.warn(err)
+      },
+      complete: () => {
+        uni.hideLoading()
+      },
+    })
   })
 }
 </script>
 
-<style scoped>
-.container {
-}
-</style>
+<style scoped></style>
