@@ -141,7 +141,7 @@ async function generateCanvas(page: PageOption) {
   }
 
   const res = await uni.canvasToTempFilePath({ canvasId: '', canvas })
-  console.log(res.tempFilePath)
+  console.log(res.tempFilePath, 'res.tempFilePath')
   // 获取画完后的数据
   const filePath = await generatePdfFile([res.tempFilePath])
   filePath && (await uni.openDocument({ filePath }))
