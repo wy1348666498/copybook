@@ -95,7 +95,6 @@ async function generateCanvas(page: PageOption) {
 
   ctx.clearRect(0, 0, canvasWidth, canvasHeight)
 
-  // Draw grid background
   const bgImage = await loadImage(page.backgroundUrl)
   for (let y = 0; y < linesPerPage; y++) {
     for (let x = 0; x < charsPerLine; x++) {
